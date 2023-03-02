@@ -18,6 +18,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using disfr.Configuration;
 using disfr.Doc;
 using IColumnDesc = disfr.Writer.IColumnDesc;
 
@@ -28,8 +29,11 @@ namespace disfr.UI
     /// </summary>
     public partial class TableView : TabItem
     {
-        public TableView()
+        private readonly IConfigService _configService;
+
+        public TableView(IConfigService configService)
         {
+            _configService = configService;
             InitializeComponent();
             StandardColumns = CreateStandardColumns();
             DataContextChanged += this_DataContextChanged;
@@ -42,6 +46,7 @@ namespace disfr.UI
             {
                 IsEnabled = false
             };
+            QuickFilter = configService.QuickFilter;
         }
 
         #region ColumnInUse attached property
@@ -206,6 +211,7 @@ namespace disfr.UI
             {
                 var col = colInfo.Column;
                 col.Visibility = GetColumnInUse(col) ? Visibility.Visible : Visibility.Collapsed;
+                
             }
 
             // A special handling of Asset column visibility.
@@ -248,7 +254,7 @@ namespace disfr.UI
             // Once used, however, a column will never get back to Unused status.
             foreach (var colInfo in StandardColumns)
             {
-                if (!GetColumnInUse(colInfo.Column) && table.AllRows.Any(colInfo.InUse))
+                if (GetColumnInUse(colInfo.Column) == false && table.AllRows.Any(colInfo.InUse))
                 {
                     SetColumnInUse(colInfo.Column, true);
                 }
@@ -316,7 +322,13 @@ namespace disfr.UI
 
         #endregion
 
-        public IEnumerable<DataGridColumn> Columns { get { return dataGrid.Columns; } }
+        public IEnumerable<DataGridColumn> Columns
+        {
+            get
+            {
+                return dataGrid.Columns;
+            }
+        }
 
         private void UnselectAll_Executed(object sender, ExecutedRoutedEventArgs e)
         {
@@ -407,6 +419,8 @@ namespace disfr.UI
             {
                 var h = c.Header;
             }
+
+            _configService.QuickFilter = value;
         }
 
         #endregion

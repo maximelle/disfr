@@ -15,7 +15,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using System.ComponentModel;
-
+using disfr.Configuration;
 using Dragablz;
 using WpfColorFontDialog;
 
@@ -26,13 +26,72 @@ namespace disfr.UI
     /// </summary>
     public partial class MainWindow : Window, IComparable<MainWindow>
     {
+        private IConfigService _configService; 
+        
         public MainWindow()
         {
             InitializeComponent();
             DataContextChanged += this_DataContextChanged;
             tables.ClosingItemCallback = tables_ClosingItemCallback;
+            tables.SelectionChanged += Tables_SelectionChanged;
+            tables.
             //tabControl.Items.Clear();
             Dispatcher.UnhandledException += Dispatcher_UnhandledException;
+            _configService = ConfigService.Instance;
+        }
+
+        private void MenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            //MessageBox.Show((e.OriginalSource as MenuItem).Header.ToString());
+        }
+
+        private void Tables_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (e.AddedItems != null && _configService.Font != null)
+            {
+                var fontInfo = _configService.Font.GetFontInfo();
+                foreach (var item in e.AddedItems)
+                {
+                    FontInfo.ApplyFont(item as Control, fontInfo);
+                }
+            }
+
+            if (e.RemovedItems != null && e.RemovedItems.Count == 1)
+            {
+                TableView tableView = e.RemovedItems[0] as TableView;
+                if (tableView == null)
+                {
+                    return;
+                }
+
+                var columns = tableView.Columns.ToList();
+
+                for (int i = 0; i < columns.Count(); i++)
+                {
+                    ColumnInfo columnInfo = new ColumnInfo() { Id = columns[i].Header.ToString(), IsVisible = (columns[i].Visibility == Visibility.Visible ? true: false) };
+                    _configService.AddColumn(columnInfo);
+                }
+            }
+
+            if (e.AddedItems != null && e.AddedItems.Count == 1)
+            {
+                TableView tableView = e.AddedItems[0] as TableView;
+                if (tableView == null)
+                {
+                    return;
+                }
+
+                var columns = tableView.Columns.ToList();
+
+                for (int i = 0; i < columns.Count(); i++)
+                {
+                    var column = _configService.GetColumn(columns[i].Header.ToString());
+                    if (column != null)
+                    {
+                        columns[i].Visibility = column.IsVisible ? Visibility.Visible : Visibility.Collapsed;
+                    }
+                }
+            }
         }
 
         private void Dispatcher_UnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
@@ -112,7 +171,7 @@ namespace disfr.UI
         {
             if (!IsClosing)
             {
-                tables.Items.Add(new TableView() { DataContext = t });
+                tables.Items.Add(new TableView(_configService) { DataContext = t });
                 tables.SelectedIndex = tables.Items.Count - 1;
             }
         }
@@ -177,6 +236,13 @@ namespace disfr.UI
                 var index = OpenFileDialog.FilterIndex - 1; // Returned index is 1-based but we expect a 0-based index.
                 var single_tab = OpenFileDialog.SingleTab;
                 Controller.OpenCommand.Execute(filenames, index, single_tab, this);
+
+                //if (_configService.Font != null)
+                //{
+                //    var fontInfo = _configService.Font.GetFontInfo();
+                //    FontInfo.ApplyFont(tables.SelectedContent as Control, fontInfo);
+                //}
+
             }
             else
             {
@@ -277,7 +343,14 @@ namespace disfr.UI
             dlg.Font = FontInfo.GetControlFont(tables.SelectedContent as Control);
             if (dlg.ShowDialog() == true)
             {
-                FontInfo.ApplyFont(tables.SelectedContent as Control, dlg.Font);
+                foreach (var item in tables.Items)
+                {
+                    FontInfo.ApplyFont(item as Control, dlg.Font);
+                }
+
+                //FontInfo.ApplyFont(tables.SelectedContent as Control, dlg.Font);
+                var fontConfig = FontConfiguration.GetFontConfiguration(dlg.Font);
+                _configService.Font = fontConfig;
             }
             e.Handled = true;
         }
@@ -362,5 +435,37 @@ namespace disfr.UI
         }
 
         #endregion
+
+        private void Tables_OnSelected(object sender, RoutedEventArgs e)
+        {
+            
+        }
+
+        private void Tables_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (e.AddedItems != null && e.AddedItems.Count == 1)
+            {
+                var tabViiew = e.AddedItems[0] as TableView;
+                if (tabViiew == null)
+                {
+                    return;
+                }
+
+                var service = ConfigService.Instance;
+
+                tabViiew.QuickFilter = service.QuickFilter;
+                (tabViiew.Controller as TableController).ShowLocalSerial = service.ShowLocalSerial;
+                (tabViiew.Controller as TableController).ShowLongAssetName = service.ShowLongAssetName;
+                bool showAll = service.ShowAll;
+                (tabViiew.Controller as TableController).ShowAll = showAll;
+                (tabViiew.Controller as TableController).ShowChanges = service.ShowChanges;
+                (tabViiew.Controller as TableController).ShowSpecials = service.ShowSpecials;
+                if (service.TagShowing != 0)
+                {
+                    (tabViiew.Controller as TableController).TagShowing = (TagShowing)service.TagShowing;
+                }
+
+            }
+        }
     }
 }

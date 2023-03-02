@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Threading;
-
+using disfr.Configuration;
 using disfr.Doc;
 
 namespace disfr.UI
@@ -26,6 +26,9 @@ namespace disfr.UI
     /// </remarks>
     public class TableController : ITableController
     {
+
+        private IConfigService _configService;
+        
         /// <summary>
         /// Creates an unloaded instance of TableController.
         /// </summary>
@@ -33,8 +36,10 @@ namespace disfr.UI
         /// <remarks>
         /// Use <see cref="LoadBilingualAssets"/> to create a usable instance.
         /// </remarks>
-        protected TableController(PairRenderer renderer, IAssetBundle bundle)
+        protected TableController(PairRenderer renderer, IAssetBundle bundle, IConfigService configService)
         {
+            _configService = configService;
+
             DelegateCommandHelper.GetHelp(this);
 
             Renderer = renderer;
@@ -42,8 +47,13 @@ namespace disfr.UI
 
             // The following are the default settings whose values are different from default(T).
             // BTW, the default settings should be user configurable. FIXME.
-            TagShowing = TagShowing.Disp;
-            ShowSpecials = true;
+
+            if (_configService.TagShowing == 0)
+            {
+                TagShowing = TagShowing.Disp;
+            }
+
+            //_ShowAll = _configService.ShowAll;
 
             UpdateFilter();
         }
@@ -109,8 +119,9 @@ namespace disfr.UI
         /// </returns>
         public static ITableController LoadBilingualAssets(IAssetBundle bundle)
         {
-            var renderer = new PairRenderer();
-            var instance = new TableController(renderer, bundle);
+            var configService = ConfigService.Instance;
+            var renderer = new PairRenderer(configService);
+            var instance = new TableController(renderer, bundle, configService);
             instance.ReloadBilingualAssets();
             return instance;
         }
@@ -131,7 +142,7 @@ namespace disfr.UI
                     var alt_assets = Bundle.Assets.ToArray();
                     var alt_name = string.Format("Alt TM {0}", Name);
                     var alt_bundle = new SimpleAssetBundle(alt_assets, alt_name);
-                    var alt_instance = new TableController(Renderer.Clone(), alt_bundle);
+                    var alt_instance = new TableController(Renderer.Clone(), alt_bundle, ConfigService.Instance);
                     alt_instance.ReloadBilingualRowData(alt_assets, CreateFilteredAltPairsGetter(origins));
                     alt_instance.Name = alt_name;
                     return alt_instance;
@@ -305,7 +316,11 @@ namespace disfr.UI
         public bool ShowLocalSerial
         {
             get { return Renderer.ShowLocalSerial; }
-            set { Renderer.ShowLocalSerial = value; _Rows.Reset(); }
+            set
+            {
+                Renderer.ShowLocalSerial = value;
+                _Rows.Reset();
+            }
         }
 
         /// <summary>
@@ -318,7 +333,10 @@ namespace disfr.UI
         public bool ShowLongAssetName
         {
             get { return Renderer.ShowLongAssetName; }
-            set { Renderer.ShowLongAssetName = value;  _Rows.Reset(); }
+            set
+            {
+                Renderer.ShowLongAssetName = value;  _Rows.Reset();
+            }
         }
 
         public bool ShowSpecials
@@ -327,7 +345,7 @@ namespace disfr.UI
             set { Renderer.ShowSpecials = value;  _Rows.Reset(); }
         }
 
-        private bool _ShowAll;
+        //private bool _ShowAll;
 
         /// <summary>
         /// Defines whether those segments not for translation are included in the table presentation.
@@ -338,8 +356,13 @@ namespace disfr.UI
         /// </value>
         public bool ShowAll
         {
-            get { return _ShowAll; }
-            set { _ShowAll = value; UpdateFilter(); }
+            get { return _configService.ShowAll; }
+            set
+            {
+                _configService.ShowAll = value;
+                //_ShowAll = value; 
+                UpdateFilter();
+            }
         }
 
         private Func<IRowData, bool> _ContentsFilter;
@@ -352,19 +375,20 @@ namespace disfr.UI
 
         private void UpdateFilter()
         {
-            if (_ShowAll && _ContentsFilter == null)
+            bool showAll = _configService.ShowAll;
+            if (showAll && _ContentsFilter == null)
             {
                 _Rows.Filter = null;
             }
-            else if (_ShowAll && _ContentsFilter != null)
+            else if (showAll && _ContentsFilter != null)
             {
                 _Rows.Filter = _ContentsFilter;
             }
-            else if (!_ShowAll && _ContentsFilter == null)
+            else if (!showAll && _ContentsFilter == null)
             {
                 _Rows.Filter = r => !r.Hidden;
             }
-            else if (!_ShowAll && _ContentsFilter != null)
+            else if (!showAll && _ContentsFilter != null)
             {
                 _Rows.Filter = r => !r.Hidden && _ContentsFilter(r);
             }

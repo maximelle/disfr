@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
+using disfr.Configuration;
 using disfr.Doc;
 
 namespace disfr.UI
@@ -24,15 +24,38 @@ namespace disfr.UI
             SpecialCharChecker = BuildSCC(SpecialCharMapAlt.Keys);
         }
 
-        public bool ShowLocalSerial { get; set; }
+        public PairRenderer(IConfigService configService)
+        {
+            ConfigService = configService;
+        }
 
-        public bool ShowLongAssetName { get; set; }
+        public IConfigService ConfigService { get; }
+
+        public bool ShowLocalSerial
+        {
+            get => ConfigService.ShowLocalSerial;
+            set => ConfigService.ShowLocalSerial = value;
+        }
+
+        public bool ShowLongAssetName
+        {
+            get => ConfigService.ShowLongAssetName;
+            set => ConfigService.ShowLongAssetName = value;
+        }
 
         public bool ShowRawId { get; set; }
 
-        public TagShowing TagShowing { get; set; }
+        public TagShowing TagShowing
+        {
+            get => (TagShowing)ConfigService.TagShowing;
+            set => ConfigService.TagShowing = (int)value;
+        }
 
-        public bool ShowChanges { get; set; }
+        public bool ShowChanges
+        {
+            get => ConfigService.ShowChanges;
+            set => ConfigService.ShowChanges = value;
+        }
 
         public InlineString.Render InlineStringRenderingMode
         {
@@ -44,7 +67,11 @@ namespace disfr.UI
             }
         }
 
-        public bool ShowSpecials { get; set; }
+        public bool ShowSpecials
+        {
+            get => ConfigService.ShowSpecials;
+            set => ConfigService.ShowSpecials = value;
+        }
 
         private const char OPAR = '{';
         private const char CPAR = '}';

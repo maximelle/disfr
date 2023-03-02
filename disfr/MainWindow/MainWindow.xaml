@@ -11,7 +11,7 @@
         PreviewDragEnter="this_PreviewDragEnter" PreviewDragOver="this_PreviewDragOver" PreviewDrop="this_PreviewDrop">
 
     <Window.Resources>
-        <ResourceDictionary>
+        <ResourceDictionary>        
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="../Common/Styles.xaml"/>
                 <ResourceDictionary Source="pack://application:,,,/Dragablz;component/Themes/Generic.xaml" />
@@ -27,7 +27,9 @@
                             <Setter Property="Header" Value="{Binding Header, Mode=OneWay}"/>
                             <Setter Property="IsEnabled" Value="{Binding (local:TableView.ColumnInUse), Mode=OneWay}"/>
                             <Setter Property="IsCheckable" Value="True"/>
-                            <Setter Property="IsChecked" Value="{Binding Visibility, Mode=TwoWay, Converter={StaticResource Visibility}}"/>
+                            <EventSetter Event="Click" Handler="MenuItem_Click"/>
+                            <Setter Property="IsChecked" Value="{Binding Visibility, Mode=TwoWay,                                
+                                Converter={StaticResource Visibility}}"/>
                         </Style>
                     </Setter.Value>
                 </Setter>
@@ -52,7 +54,7 @@
     <Grid>
 
         <dragablz:TabablzControl 
-            x:Name="tables" Margin="0,0,0,0"
+            x:Name="tables" Margin="0,0,0,0" SelectionChanged="Tables_OnSelectionChanged"
             ShowDefaultCloseButton="True" ItemContainerStyle="{StaticResource TrapezoidDragableTabItemStyle}" AdjacentHeaderItemOffset="-10">
 
             <dragablz:TabablzControl.HeaderPrefixContent>
